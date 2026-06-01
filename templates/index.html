@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>tiny search 🩷</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --pink-50: #FBEAF0;
+      --pink-100: #F4C0D1;
+      --pink-200: #ED93B1;
+      --pink-400: #D4537E;
+      --pink-600: #993556;
+      --pink-800: #72243E;
+      --pink-900: #4B1528;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #fff9fb;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle, #F4C0D1 1px, transparent 1px);
+      background-size: 28px 28px;
+      opacity: 0.35;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem 1.5rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 56px;
+      color: var(--pink-400);
+      letter-spacing: -1.5px;
+      margin-bottom: 0.3rem;
+      animation: fadeDown 0.6s ease both;
+    }
+    .logo em { font-style: italic; color: var(--pink-200); }
+
+    .tagline {
+      font-size: 13px;
+      font-weight: 300;
+      color: var(--pink-600);
+      letter-spacing: 0.12em;
+      text-transform: lowercase;
+      margin-bottom: 2.2rem;
+      animation: fadeDown 0.6s 0.1s ease both;
+    }
+
+    .search-box {
+      width: 100%;
+      max-width: 540px;
+      display: flex;
+      align-items: center;
+      background: #fff;
+      border: 1.5px solid var(--pink-100);
+      border-radius: 999px;
+      padding: 0 18px;
+      gap: 10px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      animation: fadeUp 0.6s 0.15s ease both;
+    }
+    .search-box:focus-within {
+      border-color: var(--pink-400);
+      box-shadow: 0 0 0 4px var(--pink-50);
+    }
+    .search-box svg { flex-shrink: 0; color: var(--pink-400); }
+    .search-box input {
+      flex: 1;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      padding: 15px 0;
+      color: var(--pink-900);
+    }
+    .search-box input::placeholder { color: var(--pink-200); }
+    .clear-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--pink-200);
+      padding: 0;
+      display: none;
+      line-height: 1;
+      transition: color 0.15s;
+    }
+    .clear-btn:hover { color: var(--pink-400); }
+    .clear-btn.visible { display: flex; }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 1.1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      animation: fadeUp 0.6s 0.25s ease both;
+    }
+    .btn {
+      border-radius: 999px;
+      padding: 9px 20px;
+      font-size: 13px;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .btn-solid {
+      background: var(--pink-400);
+      border: 1px solid var(--pink-400);
+      color: #fff;
+    }
+    .btn-solid:hover { background: var(--pink-600); border-color: var(--pink-600); }
+
+    .loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      margin-top: 1.5rem;
+    }
+    .loading.visible { display: flex; }
+    .dots { display: flex; gap: 6px; }
+    .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--pink-200);
+      animation: bounce 1.2s infinite ease-in-out;
+    }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    .loading-text { font-size: 12px; color: var(--pink-400); opacity: 0.7; font-weight: 300; }
+
+    .results-area {
+      width: 100%;
+      max-width: 540px;
+      margin-top: 1.5rem;
+      display: none;
+      animation: fadeUp 0.4s ease both;
+    }
+    .results-area.visible { display: block; }
+
+    .results-label {
+      font-size: 11.5px;
+      color: var(--pink-400);
+      opacity: 0.65;
+      margin-bottom: 0.8rem;
+      padding-left: 6px;
+      font-weight: 300;
+      letter-spacing: 0.02em;
+    }
+
+    .result-card {
+      background: #fff;
+      border: 1px solid var(--pink-100);
+      border-radius: 18px;
+      padding: 13px 18px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
+      overflow: hidden;
+    }
+    .result-card:hover {
+      background: var(--pink-50);
+      border-color: var(--pink-200);
+      transform: translateY(-1px);
+    }
+    .result-card.expanded {
+      background: var(--pink-50);
+      border-color: var(--pink-400);
+      transform: none;
+      cursor: default;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      cursor: pointer;
+    }
+    .res-title {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--pink-800);
+    }
+    .chevron {
+      flex-shrink: 0;
+      color: var(--pink-400);
+      transition: transform 0.25s ease;
+    }
+    .expanded .chevron { transform: rotate(180deg); }
+
+    .res-text {
+      font-size: 13.5px;
+      color: var(--pink-800);
+      line-height: 1.7;
+      font-weight: 300;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid var(--pink-100);
+      display: none;
+    }
+    .expanded .res-text { display: block; }
+
+    .error-msg {
+      font-size: 13px;
+      color: var(--pink-600);
+      text-align: center;
+      margin-top: 1rem;
+      opacity: 0.8;
+    }
+
+    footer {
+      text-align: center;
+      padding: 1.2rem;
+      font-size: 11px;
+      color: var(--pink-200);
+      letter-spacing: 0.05em;
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes bounce {
+      0%, 80%, 100% { transform: scale(0.7); opacity: 0.4; }
+      40%            { transform: scale(1.1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="logo">tiny<em>search</em> 🩷</div>
+    <p class="tagline">small engine, big heart</p>
+
+    <div class="search-box" id="searchBox">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="searchInput" placeholder="search for something tiny..." autocomplete="off" autofocus />
+      <button class="clear-btn" id="clearBtn" aria-label="clear search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+      </button>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn btn-solid" id="searchBtn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        tiny search
+      </button>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div class="loading-text">searching the tiniest corners of the web...</div>
+    </div>
+
+    <div class="results-area" id="resultsArea">
+      <div class="results-label" id="resultsLabel"></div>
+      <div id="resultsList"></div>
+    </div>
+  </main>
+
+  <footer>made with 🩷 · tiny search</footer>
+
+  <script>
+    const BACKEND = 'http://localhost:5000';
+
+    const input = document.getElementById('searchInput');
+    const clearBtn = document.getElementById('clearBtn');
+    const searchBtn = document.getElementById('searchBtn');
+    const loading = document.getElementById('loading');
+    const resultsArea = document.getElementById('resultsArea');
+    const resultsList = document.getElementById('resultsList');
+    const resultsLabel = document.getElementById('resultsLabel');
+
+    function renderResults(results, q) {
+      resultsList.innerHTML = '';
+
+      if (!results || results.length === 0) {
+        resultsList.innerHTML = '<p class="error-msg">no results found 🌸</p>';
+        return;
+      }
+
+      resultsLabel.textContent = `${results.length} result${results.length !== 1 ? 's' : ''} for "${q}"`;
+
+      results.forEach((r, i) => {
+        const card = document.createElement('div');
+        card.className = 'result-card';
+        card.innerHTML = `
+          <div class="card-header">
+            <div class="res-title">${r.title || 'Untitled'}</div>
+            <svg class="chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <div class="res-text">${r.text || ''}</div>
+        `;
+
+        card.querySelector('.card-header').addEventListener('click', () => {
+          card.classList.toggle('expanded');
+        });
+
+        resultsList.appendChild(card);
+      });
+    }
+
+    async function doSearch() {
+      const q = input.value.trim();
+      if (!q) return;
+
+      loading.classList.add('visible');
+      resultsArea.classList.remove('visible');
+      resultsList.innerHTML = '';
+
+      try {
+        const res = await fetch(`${BACKEND}/search?q=${encodeURIComponent(q)}`);
+        if (!res.ok) throw new Error(`server error: ${res.status}`);
+        const results = await res.json();
+        renderResults(results, q);
+        resultsArea.classList.add('visible');
+      } catch (err) {
+        resultsList.innerHTML = `<p class="error-msg">couldn't reach the backend 🌸<br><small style="opacity:0.6">${err.message}</small></p>`;
+        resultsArea.classList.add('visible');
+      } finally {
+        loading.classList.remove('visible');
+      }
+    }
+
+    input.addEventListener('input', () => {
+      clearBtn.classList.toggle('visible', input.value.length > 0);
+    });
+    input.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+    searchBtn.addEventListener('click', doSearch);
+    clearBtn.addEventListener('click', () => {
+      input.value = '';
+      clearBtn.classList.remove('visible');
+      resultsArea.classList.remove('visible');
+      loading.classList.remove('visible');
+      input.focus();
+    });
+  </script>
+</body>
+</html>
